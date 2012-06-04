@@ -6,7 +6,10 @@ package Bingo;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
@@ -17,8 +20,31 @@ import java.util.Scanner;
 public class OCR2 {
     
     private static List<Bingo> plateList = new ArrayList<Bingo>();
+    private static String debug = "src/Bingo/ORCdebug";
+    private static FileWriter FW = null;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {        
+        File debugf = new File(debug);
+        if (!debugf.exists()) {
+            try {
+                debugf.createNewFile();
+            } catch (IOException ex) {
+                debugPrint("Couldn't create file");
+            }
+        }
+        if (debugf.canWrite()) {
+            System.out.println("Debug file ready to write");
+            try {
+                FW = new FileWriter(debug, true);
+            } catch (IOException ex) {
+                debugPrint("Couldn't write to created file");
+            }
+        } else {
+            debugPrint("Debug file error (write)");
+        }
+        Date d = new Date();
+        String date = d.getDate() + "/" + (d.getMonth()+1) + " - " + d.getYear() + " : " + d.getHours() + "." + d.getMinutes();
+        FW.write("File created and writing succesfully (" + date + ")\n---------------------------\n\n");
         String path = "src/Bingo/plates", nextInt;
         int number, chars = 0;
         List<Integer> listInt = new ArrayList<Integer>();
@@ -30,10 +56,11 @@ public class OCR2 {
         try {
             scan = new Scanner(new File(path));
         } catch (FileNotFoundException ex) {
-            System.out.println("File not found");
+            debugPrint("File not found");
+            FW.write("File not found");
             // GUI  - ERROR BOX
         }
-        System.out.println("Start reading:\n");
+        debugPrint("Start reading:\n");
         while (scan.hasNext()) {
             nextInt = scan.next();
             // if it contains any number
@@ -42,10 +69,10 @@ public class OCR2 {
             }
 
         }
-        System.out.println("Ended reading:\n");
-        System.out.println("Original Numbers:\n" + list.toString());
+        debugPrint("Ended reading:\n");
+        debugPrint("Original Numbers:\n" + list.toString());
         list = sortImportantNumbers(list);
-        System.out.println("Numbers:\n" + list.toString());
+        debugPrint("Numbers:\n" + list.toString());
 
         for (int i = 0; i < list.size(); i++) {
             try {
@@ -53,16 +80,16 @@ public class OCR2 {
                 listInt.add(number);
                 chars++;
             } catch (NumberFormatException e) {
-                System.out.println("Couldn't parse to Integer:\t" + list.get(i));
+                debugPrint("Couldn't parse to Integer:\t" + list.get(i));
                 // GUI ERROR - MANUALLY for this number
                 continue;
             }
         }
         
         copyToBingo(listInt, bin);
-        System.out.println("Plates: ");
+        debugPrint("Plates: ");
         for (int i = 0; i < plateList.size(); i++) {
-            System.out.println(plateList.get(i).plateToString()+"\n");
+            debugPrint(plateList.get(i).plateToString()+"\n");
         }
     }
 
@@ -78,7 +105,7 @@ public class OCR2 {
                     || list.get(i).contains("MAJ") || list.get(i).contains("JUN")
                     || list.get(i).contains("JUL") || list.get(i).contains("AUG")
                     || list.get(i).contains("SEP") || list.get(i).contains("OKT")
-                    || list.get(i).equalsIgnoreCase("2011") || list.get(i).equalsIgnoreCase("2012")) {
+                    || list.get(i).equalsIgnoreCase("2011") || list.get(i).equalsIgnoreCase("2012") || list.get(i).equalsIgnoreCase("2013")) {
                 continue;
             } else if (list.get(i).contains("GYLDIG")) {
                 out.add(list.get(i).substring(0, 5));
@@ -105,13 +132,13 @@ public class OCR2 {
         for (int i = 0; i < list.size(); i++) {
             if (list.get(i) > 90 && count < 15) {
                 count = 0;
-                System.out.println("Wrong plate: " + number + " (" + list.get(i) + ")");
+                debugPrint("Wrong plate: " + number + " (" + list.get(i) + ")");
                 continue;
             }
             if (count != 0 && count != 5 && count != 10) {
                 if (list.get(i) <= list.get(i-1)) {
                     // ERROR
-                    System.out.println("Wrong plate (bigger): " + number + " (" + list.get(i) + ")");
+                    debugPrint("Wrong plate (bigger): " + number + " (" + list.get(i) + ")");
                     while(list.get(i) <= 90) {
                         i++;
                     }
@@ -134,7 +161,17 @@ public class OCR2 {
             tempPlate[count] = list.get(i);
             count++;
         }
-        System.out.println("Number of plates: " + number);
+        debugPrint("Number of plates: " + number);
         return number;
+    }
+    
+    private static void debugPrint(String s) {
+        try {
+            FW.write(s + "\n");
+        } catch (IOException ex) {
+            System.out.println("Couldn't write string: " + s);
+        }
+        System.out.println(s);
+        
     }
 }
